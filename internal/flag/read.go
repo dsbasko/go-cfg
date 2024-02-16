@@ -3,12 +3,9 @@ package flag
 import (
 	"fmt"
 	"reflect"
-	"sync"
 
 	"github.com/integrii/flaggy"
 )
-
-var once sync.Once
 
 // Read is a function that parses command-line flags into the provided cfg structure.
 // The cfg parameter should be a pointer to a struct where each field represents a command-line flag.
@@ -89,9 +86,8 @@ func parseFlags(cfg any) error { //nolint:gocyclo
 	}
 
 	// The flaggy.Parse function is called only once to parse the command-line flags.
-	once.Do(func() {
-		flaggy.Parse()
-	})
+	flaggy.Parse()
+	flaggy.ResetParser()
 
 	return nil
 }
