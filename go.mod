@@ -8,3 +8,8 @@ require (
 	github.com/caarlos0/env/v10 v10.0.0
 	github.com/integrii/flaggy v1.5.2
 )
+
+require (
+	github.com/BurntSushi/toml v1.3.2 // indirect
+	github.com/joho/godotenv v1.5.1 // indirect
+)

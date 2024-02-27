@@ -2,7 +2,7 @@
 This project is a Go library for reading configuration data from various sources such as environment variables, command-line flags, and configuration files. The library provides a unified interface for reading configuration data, making it easier to manage and maintain your application's configuration.  
 
 ## Attention
-The library uses the [env](github.com/caarlos0/env) and [flaggy](github.com/integrii/flaggy) codebase to work with environment variables and flags. This is a temporary solution, maybe I’ll write my own implementation later. Thanks to the authors of these libraries for the work done!
+The library uses the [env](github.com/caarlos0/env), [toml](github.com/BurntSushi/toml), [godotenv](github.com/joho/godotenv) and [flaggy](github.com/integrii/flaggy) codebase to work with environment variables and flags. This is a temporary solution, maybe I’ll write my own implementation later. Thanks to the authors of these libraries for the work done!
 
 ### Installation
 To install the library, use the go get command:
@@ -17,7 +17,7 @@ The library provides several functions for reading configuration data:
 - `MustReadEnv(cfg any)`: Similar to `ReadEnv` but panics if the reading process fails.  
 - `ReadFlag(cfg any) error`: Reads command-line flags into the provided `cfg` structure. Each field in the `cfg` structure represents a command-line flag.  
 - `MustReadFlag(cfg any)`: Similar to `ReadFlag` but panics if the reading process fails.  
-- `ReadFile(path string, cfg any) error`: Reads configuration from a file into the provided `cfg` structure. The path parameter is the path to the configuration file. Each field in the `cfg` structure represents a configuration option. Supported file formats include JSON and YAML.
+- `ReadFile(path string, cfg any) error`: Reads configuration from a file into the provided `cfg` structure. The path parameter is the path to the configuration file. Each field in the `cfg` structure represents a configuration option. Supported file formats include JSON, YAML, TOML and .env.
 - `MustReadFile(path string, cfg any)`: Similar to `ReadFile` but panics if the reading process fails.
 
 Here is an example of how to use the library:
