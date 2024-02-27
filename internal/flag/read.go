@@ -11,7 +11,7 @@ import (
 // The cfg parameter should be a pointer to a struct where each field represents a command-line flag.
 // The function returns an error if the parsing process fails, wrapping the original error with a message.
 func Read(cfg any) error {
-	if err := parseFlags(cfg); err != nil {
+	if err := parseFlags(cfg, 1); err != nil {
 		return fmt.Errorf("failed to parse flags: %w", err)
 	}
 
@@ -21,7 +21,7 @@ func Read(cfg any) error {
 // parseFlags is a helper function used by Read to parse the command-line flags.
 // It uses reflection to iterate over the fields of the cfg structure and sets the corresponding command-line flags.
 // The function returns an error if the cfg parameter is not a non-nil pointer to a struct or if the parsing process fails.
-func parseFlags(cfg any) error { //nolint:gocyclo
+func parseFlags(cfg any, deepCount int) error { //nolint:gocyclo
 	flaggy.DefaultParser.ShowHelpWithHFlag = false
 	flaggy.DefaultParser.ShowVersionWithVersionFlag = false
 
@@ -41,6 +41,13 @@ func parseFlags(cfg any) error { //nolint:gocyclo
 		flagFullName := field.Tag.Get("flag")
 		flagShortName := field.Tag.Get("s-flag")
 		flagDescription := field.Tag.Get("description")
+
+		// If the field is a struct, the function calls itself recursively to parse the flags in the struct.
+		if field.Type.Kind() == reflect.Struct {
+			if err := parseFlags(valueOf.Field(i).Addr().Interface(), deepCount+1); err != nil {
+				return err
+			}
+		}
 
 		if flagFullName != "" || flagShortName != "" {
 			// The switch statement is used to handle different types of fields in the cfg structure.
@@ -76,18 +83,13 @@ func parseFlags(cfg any) error { //nolint:gocyclo
 				flaggy.Bool(valueOf.Field(i).Addr().Interface().(*bool), flagShortName, flagFullName, flagDescription)
 			}
 		}
-
-		// If the field is a struct, the function calls itself recursively to parse the flags in the struct.
-		if field.Type.Kind() == reflect.Struct {
-			if err := parseFlags(valueOf.Field(i).Addr().Interface()); err != nil {
-				return err
-			}
-		}
 	}
 
 	// The flaggy.Parse function is called only once to parse the command-line flags.
-	flaggy.Parse()
-	flaggy.ResetParser()
+	if deepCount == 1 {
+		flaggy.Parse()
+		flaggy.ResetParser()
+	}
 
 	return nil
 }
