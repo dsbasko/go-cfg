@@ -6,10 +6,10 @@ import (
 	"strconv"
 )
 
-// FromMap maps the values from the given data map to the corresponding fields in the cfg struct.
-// The cfg parameter must be a pointer to a struct. The mapping is done based on the "env" tag of each field.
-// If a field has a non-empty "env" tag, its value will be set to the corresponding value from the data map.
-// Returns an error if the cfg parameter is not a pointer to a struct.
+// FromMap maps the values from the data map to the fields of the struct.
+// The inMap map is a map[string]string where the key is the name of the field
+// and the value is the value to be set in the field.
+// The inStruct must be a pointer to a struct.
 func FromMap(inMap map[string]string, inStruct any) error { // nolint: funlen,gocyclo,nolintlint
 	valueOf := reflect.ValueOf(inStruct)
 

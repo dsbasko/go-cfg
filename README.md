@@ -2,7 +2,7 @@
 This project is a Go library for reading configuration data from various sources such as environment variables, command-line flags, and configuration files. The library provides a unified interface for reading configuration data, making it easier to manage and maintain your application's configuration.  
 
 ## Attention
-The library uses the [env](github.com/caarlos0/env), [toml](github.com/BurntSushi/toml), [godotenv](github.com/joho/godotenv) and [flaggy](github.com/integrii/flaggy) codebase to work with environment variables and flags. This is a temporary solution, maybe I’ll write my own implementation later. Thanks to the authors of these libraries for the work done!
+The library uses the [env](https://github.com/caarlos0/env), [toml](https://github.com/BurntSushi/toml), [godotenv](https://github.com/joho/godotenv) and [flaggy](https://github.com/integrii/flaggy) codebase to work with environment variables and flags. This is a temporary solution, maybe I’ll write my own implementation later. Thanks to the authors of these libraries for the work done!
 
 ### Installation
 To install the library, use the go get command:
@@ -48,3 +48,116 @@ func main() {
 }
 ```
 
+Note that you can configure the priority of the configuration. For example, you can first read YAML configs, then environment variables, and finally flags, or vice versa.
+
+## Flags
+
+Run a project with flags: `go run ./cmd/main.go -s="some short flag" --flat=f1 --nested n1`
+
+```go
+type config struct {
+	WithShort string `s-flag:"s" flag:"with-short" description:"With short flag"`
+	Flat      string `flag:"flat" description:"Flat flag"`
+	Parent    struct {
+		Nested string `flag:"nested" description:"Nested flag"`
+	}
+}
+
+func main() {
+	var cfg config
+	if err := gocfg.ReadFlag(&cfg); err != nil {
+		log.Panicf("failed to read flag: %v", err)
+	}
+	// or: gocfg.MustReadFlag(&cfg)
+
+	log.Printf("WithShort: %v\n", cfg.WithShort)
+	log.Printf("Flat: %v\n", cfg.Flat)
+	log.Printf("Nested: %v\n", cfg.Parent.Nested)
+}
+
+// WithShort: some short flag
+// Flat: f1
+// Nested: n1
+```
+
+There are three structural tags available for working with flags:
+- `flag`: the name of the flag
+- `s-flag`: short name of the flask
+- `description`: Description of the flag that is displayed when running the `--help` command.
+
+## Environment variables
+
+The `env` structure tag is used for environment variables.
+Run a project with environment variables: `FLAT=f1 NESTED=n1 go run ./cmd/main.go`
+
+```go
+type config struct {
+	Flat   string `env:"FLAT"`
+	Parent struct {
+		Nested string `env:"NESTED"`
+	}
+}
+
+func main() {
+	var cfg config
+	if err := gocfg.ReadEnv(&cfg); err != nil {
+		log.Panicf("failed to read env: %v", err)
+	}
+	// or: gocfg.MustReadEnv(&cfg)
+
+	log.Printf("Flat: %v\n", cfg.Flat)
+	log.Printf("Nested: %v\n", cfg.Parent.Nested)
+}
+
+// Flat: f1
+// Nested: n1
+```
+
+## Files
+
+
+To read the configuration from files, the following structural tags are available:
+- `env` for files of the format `.env`
+- `yaml` for files of the format `.yaml` or `.yml`
+- `toml` for files of the format `.toml`
+- `json` for files of the format `.json`
+
+Run a project with environment variables: `go run ./cmd/main.go`
+
+```go
+type config struct {
+	Flat   string `yaml:"flat"`
+	Parent struct {
+		Nested string `yaml:"nested"`
+	}
+}
+
+func main() {
+	var cfg config
+	if err := gocfg.ReadFile(path.Join("cmd", "config.yaml"), &cfg); err != nil {
+		log.Panicf("failed to read config.yaml file: %v", err)
+	}
+	// or: gocfg.MustReadFile(path.Join("cmd", "config.yaml"), &cfg)
+
+	log.Printf("Flat: %v\n", cfg.Flat)
+	log.Printf("Nested: %v\n", cfg.Parent.Nested)
+}
+
+// Flat: f1
+// Nested: n1
+```
+
+Structure of the `yaml` file:
+```yaml
+flat: f1
+foo:
+  nested: n1
+```
+
+<br>
+
+---
+
+If you enjoyed this project, I would appreciate it if you could give it a star! If you notice any problems or have any suggestions for improvement, please feel free to create a new issue. Your feedback means a lot to me!
+
+❤️ [Dmitriy Basenko](https://github.com/dsbasko)
