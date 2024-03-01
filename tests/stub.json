@@ -1,0 +1,20 @@
+{
+  "str": "json-string",
+  "int": -342,
+  "int_8": -38,
+  "int_16": -316,
+  "int_32": -332,
+  "int_64": -364,
+  "uint": 342,
+  "uint_8": 38,
+  "uint_16": 316,
+  "uint_32": 332,
+  "uint_64": 364,
+  "float_32": 332.32,
+  "float_64": 364.64,
+  "parent": {
+    "nested": {
+      "bool": true
+    }
+  }
+}

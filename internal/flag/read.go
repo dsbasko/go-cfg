@@ -2,93 +2,91 @@ package flag
 
 import (
 	"fmt"
-	"reflect"
+	"os"
+	rf "reflect"
+	"sync"
 
-	"github.com/integrii/flaggy"
+	"github.com/spf13/pflag"
+
+	"github.com/dsbasko/go-cfg/internal/dflt"
+	"github.com/dsbasko/go-cfg/internal/reflect"
 )
 
-// Read is a function that parses command-line flags into the provided cfg structure.
-// The cfg parameter should be a pointer to a struct where each field represents a command-line flag.
-// The function returns an error if the parsing process fails, wrapping the original error with a message.
-func Read(cfg any) error {
-	if err := parseFlags(cfg, 1); err != nil {
+var (
+	once    sync.Once
+	flagSet *pflag.FlagSet
+	dataPtr map[string]*string
+)
+
+// Read is a function that reads the input structure, validates it, reads the default values,
+// parses the flags from the command line arguments and writes the values to the input structure.
+// It returns an error if any of these operations fail.
+func Read(structPtr any) error {
+	if err := reflect.Validation(structPtr); err != nil {
+		return fmt.Errorf("failed to validate in struct: %w", err)
+	}
+
+	if errDefault := dflt.Read(structPtr); errDefault != nil {
+		return errDefault
+	}
+
+	once.Do(func() {
+		dataPtr = make(map[string]*string)
+		flagSet = pflag.NewFlagSet("cfg", pflag.ContinueOnError)
+	})
+
+	if err := parseFlags(structPtr, flagSet, ""); err != nil {
 		return fmt.Errorf("failed to parse flags: %w", err)
+	}
+
+	if err := flagSet.Parse(os.Args[1:]); err != nil {
+		return fmt.Errorf("failed to parse flags: %w", err)
+	}
+
+	dataMap := make(map[string]string)
+	for key, value := range dataPtr {
+		dataMap[key] = *value
+	}
+
+	findFn := func(fieldName string) string { return dataMap[fieldName] }
+	if err := reflect.WriteToStruct(structPtr, findFn); err != nil {
+		return fmt.Errorf("failed to write to struct: %w", err)
 	}
 
 	return nil
 }
 
-// parseFlags is a helper function used by Read to parse the command-line flags.
-// It uses reflection to iterate over the fields of the cfg structure and sets the corresponding command-line flags.
-// The function returns an error if the cfg parameter is not a non-nil pointer to a struct or if the parsing process fails.
-func parseFlags(cfg any, deepCount int) error { //nolint:gocyclo
-	flaggy.DefaultParser.ShowHelpWithHFlag = false
-	flaggy.DefaultParser.ShowVersionWithVersionFlag = false
-
-	valueOf := reflect.ValueOf(cfg)
-
-	if valueOf.Kind() != reflect.Ptr || valueOf.IsNil() {
-		return fmt.Errorf("must be a non-nil pointer to a struct")
-	}
-
-	valueOf = valueOf.Elem()
-	if valueOf.Kind() != reflect.Struct {
-		return fmt.Errorf("must be a pointer to a struct")
+// parseFlags is a recursive function that parses the flags from the input structure and
+// the command line arguments. It adds the flags to the flagSet and the dataPtr map.
+// It returns an error if the parsing fails.
+func parseFlags(structPtr any, flagSet *pflag.FlagSet, prefix string) error {
+	valueOf := rf.ValueOf(structPtr)
+	if valueOf.Kind() == rf.Ptr {
+		valueOf = valueOf.Elem()
 	}
 
 	for i := 0; i < valueOf.NumField(); i++ {
 		field := valueOf.Type().Field(i)
 		flagFullName := field.Tag.Get("flag")
 		flagShortName := field.Tag.Get("s-flag")
-		flagDescription := field.Tag.Get("description")
+		flagUsage := field.Tag.Get("description")
 
-		// If the field is a struct, the function calls itself recursively to parse the flags in the struct.
-		if field.Type.Kind() == reflect.Struct {
-			if err := parseFlags(valueOf.Field(i).Addr().Interface(), deepCount+1); err != nil {
-				return err
+		if field.Type.Kind() == rf.Struct {
+			if err := parseFlags(
+				valueOf.Field(i).Addr().Interface(),
+				flagSet,
+				fmt.Sprintf("%s%s.", prefix, field.Name),
+			); err != nil {
+				return fmt.Errorf("failed to parse flags: %w", err)
 			}
 		}
 
-		if flagFullName != "" || flagShortName != "" {
-			// The switch statement is used to handle different types of fields in the cfg structure.
-			// For each type, it sets the corresponding command-line flag using the flaggy package.
-			switch field.Type.Kind() {
-			case reflect.String:
-				flaggy.String(valueOf.Field(i).Addr().Interface().(*string), flagShortName, flagFullName, flagDescription)
-			case reflect.Int:
-				flaggy.Int(valueOf.Field(i).Addr().Interface().(*int), flagShortName, flagFullName, flagDescription)
-			case reflect.Int8:
-				flaggy.Int8(valueOf.Field(i).Addr().Interface().(*int8), flagShortName, flagFullName, flagDescription)
-			case reflect.Int16:
-				flaggy.Int16(valueOf.Field(i).Addr().Interface().(*int16), flagShortName, flagFullName, flagDescription)
-			case reflect.Int32:
-				flaggy.Int32(valueOf.Field(i).Addr().Interface().(*int32), flagShortName, flagFullName, flagDescription)
-			case reflect.Int64:
-				flaggy.Int64(valueOf.Field(i).Addr().Interface().(*int64), flagShortName, flagFullName, flagDescription)
-			case reflect.Uint:
-				flaggy.UInt(valueOf.Field(i).Addr().Interface().(*uint), flagShortName, flagFullName, flagDescription)
-			case reflect.Uint8:
-				flaggy.UInt8(valueOf.Field(i).Addr().Interface().(*uint8), flagShortName, flagFullName, flagDescription)
-			case reflect.Uint16:
-				flaggy.UInt16(valueOf.Field(i).Addr().Interface().(*uint16), flagShortName, flagFullName, flagDescription)
-			case reflect.Uint32:
-				flaggy.UInt32(valueOf.Field(i).Addr().Interface().(*uint32), flagShortName, flagFullName, flagDescription)
-			case reflect.Uint64:
-				flaggy.UInt64(valueOf.Field(i).Addr().Interface().(*uint64), flagShortName, flagFullName, flagDescription)
-			case reflect.Float64:
-				flaggy.Float64(valueOf.Field(i).Addr().Interface().(*float64), flagShortName, flagFullName, flagDescription)
-			case reflect.Float32:
-				flaggy.Float32(valueOf.Field(i).Addr().Interface().(*float32), flagShortName, flagFullName, flagDescription)
-			case reflect.Bool:
-				flaggy.Bool(valueOf.Field(i).Addr().Interface().(*bool), flagShortName, flagFullName, flagDescription)
-			}
+		fieldName := fmt.Sprintf("%s%s", prefix, field.Name)
+		foundFlag := flagSet.Lookup(flagFullName)
+		if _, ok := dataPtr[fieldName]; !ok && foundFlag == nil && (flagFullName != "" || flagShortName != "") {
+			dataPtr[fieldName] = new(string)
+			flagSet.StringVarP(dataPtr[fieldName], flagFullName, flagShortName, "", flagUsage)
 		}
-	}
-
-	// The flaggy.Parse function is called only once to parse the command-line flags.
-	if deepCount == 1 {
-		flaggy.Parse()
-		flaggy.ResetParser()
 	}
 
 	return nil

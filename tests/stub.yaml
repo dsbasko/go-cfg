@@ -1,0 +1,16 @@
+str: yaml-string
+int: -442
+int_8: -48
+int_16: -416
+int_32: -432
+int_64: -464
+uint: 442
+uint_8: 48
+uint_16: 416
+uint_32: 432
+uint_64: 464
+float_32: 432.32
+float_64: 464.64
+parent:
+  nested:
+    bool: true

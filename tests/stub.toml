@@ -1,0 +1,16 @@
+str = "toml-string"
+int = -542
+int_8 = -58
+int_16 = -516
+int_32 = -532
+int_64 = -564
+uint = 542
+uint_8 = 58
+uint_16 = 516
+uint_32 = 532
+uint_64 = 564
+float_32 = 532.32
+float_64 = 564.64
+
+[parent.nested]
+bool = true

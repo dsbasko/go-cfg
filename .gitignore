@@ -6,5 +6,6 @@ Thumbs.db
 
 .env
 coverage.out
+coverage.svg
 bin
 cmd

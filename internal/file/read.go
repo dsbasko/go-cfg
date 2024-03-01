@@ -8,18 +8,28 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/dsbasko/go-cfg/pkg/structs"
-
 	"github.com/BurntSushi/toml"
 	"github.com/joho/godotenv"
 	"gopkg.in/yaml.v3"
+
+	"github.com/dsbasko/go-cfg/internal/dflt"
+	"github.com/dsbasko/go-cfg/internal/reflect"
 )
 
-// Read is a function that reads configuration from a file into the provided cfg structure.
-// The path parameter is the path to the configuration file.
-// The cfg parameter should be a pointer to a struct where each field represents a configuration option.
-// The function returns an error if the reading process fails.
-func Read(path string, cfg any) error {
+// Read is a function that parses the content of the file into the provided cfg structure.
+// The path parameter should be a string representing the path to the file. The structPtr
+// parameter should be a pointer to a struct where each field represents a configuration
+// option. The function returns an error if the parsing process fails, wrapping the
+// original error with a message.
+func Read(path string, structPtr any) error {
+	if errValidation := reflect.Validation(structPtr); errValidation != nil {
+		return fmt.Errorf("error validating struct: %w", errValidation)
+	}
+
+	if errDefault := dflt.Read(structPtr); errDefault != nil {
+		return fmt.Errorf("error setting default values: %w", errDefault)
+	}
+
 	file, err := os.OpenFile(path, os.O_RDONLY|os.O_SYNC, 0)
 	if err != nil {
 		return fmt.Errorf("failed to open file: %w", err)
@@ -28,19 +38,19 @@ func Read(path string, cfg any) error {
 
 	switch extension := strings.ToLower(filepath.Ext(path)); extension {
 	case ".json":
-		if err = parseJSON(file, cfg); err != nil {
+		if err = parseJSON(file, structPtr); err != nil {
 			return fmt.Errorf("failed to parse json: %w", err)
 		}
 	case ".yaml", ".yml":
-		if err = parseYAML(file, cfg); err != nil {
+		if err = parseYAML(file, structPtr); err != nil {
 			return fmt.Errorf("failed to parse yaml: %w", err)
 		}
 	case ".toml":
-		if err = parseTOML(file, cfg); err != nil {
+		if err = parseTOML(file, structPtr); err != nil {
 			return fmt.Errorf("failed to parse toml: %w", err)
 		}
 	case ".env":
-		if err = parseENV(file, cfg); err != nil {
+		if err = parseENV(file, structPtr); err != nil {
 			return fmt.Errorf("failed to parse env: %w", err)
 		}
 	}
@@ -49,38 +59,48 @@ func Read(path string, cfg any) error {
 }
 
 // parseJSON is a helper function used by Read to parse the JSON content of the file.
-// It takes an io.Reader and a pointer to a struct where each field represents a configuration option.
-// The function returns an error if the parsing process fails.
-func parseJSON(r io.Reader, cfg any) error {
-	return json.NewDecoder(r).Decode(cfg)
+// It takes an io.Reader and a pointer to a struct where each field represents a
+// configuration option. The function returns an error if the parsing process fails.
+func parseJSON(r io.Reader, structPtr any) error {
+	return json.NewDecoder(r).Decode(structPtr)
 }
 
 // parseYAML is a helper function used by Read to parse the YAML content of the file.
-// It takes an io.Reader and a pointer to a struct where each field represents a configuration option.
-// The function returns an error if the parsing process fails.
-func parseYAML(r io.Reader, cfg any) error {
-	return yaml.NewDecoder(r).Decode(cfg)
+// It takes an io.Reader and a pointer to a struct where each field represents a
+// configuration option. The function returns an error if the parsing process fails.
+func parseYAML(r io.Reader, structPtr any) error {
+	return yaml.NewDecoder(r).Decode(structPtr)
 }
 
 // parseTOML is a helper function used by Read to parse the TOML content of the file.
-// It takes an io.Reader and a pointer to a struct where each field represents a configuration option.
-// The function returns an error if the parsing process fails.
-func parseTOML(r io.Reader, cfg any) error {
-	_, err := toml.NewDecoder(r).Decode(cfg)
+// It takes an io.Reader and a pointer to a struct where each field represents a
+// configuration option. The function returns an error if the parsing process fails.
+func parseTOML(r io.Reader, structPtr any) error {
+	_, err := toml.NewDecoder(r).Decode(structPtr)
 	return err
 }
 
-// parseENV parses the environment variables from the given io.Reader and populates the provided configuration struct.
-// It uses the godotenv package to parse the data.
-// If an error occurs during parsing or populating the struct, it returns the error.
-func parseENV(r io.Reader, cfg any) error {
-	data, err := godotenv.Parse(r)
+// parseENV is a helper function used by Read to parse the ENV content of the file.
+// It takes an io.Reader and a pointer to a struct where each field represents a
+// configuration option. The function returns an error if the parsing process fails.
+func parseENV(r io.Reader, structPtr any) error {
+	dataEnv, err := godotenv.Parse(r)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to parse env: %w", err)
 	}
 
-	if err := structs.FromMap(data, cfg); err != nil {
-		return err
+	parsedStruct, err := reflect.ParseTag(structPtr, "env")
+	if err != nil {
+		return fmt.Errorf("failed to parse tag: %w", err)
+	}
+
+	if errReflection := reflect.WriteToStruct(structPtr, func(fieldName string) string {
+		if _, ok := parsedStruct[fieldName]; !ok {
+			return ""
+		}
+		return dataEnv[parsedStruct[fieldName].TagValue]
+	}); errReflection != nil {
+		return errReflection
 	}
 
 	return nil

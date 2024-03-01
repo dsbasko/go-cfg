@@ -2,7 +2,7 @@
 This project is a Go library for reading configuration data from various sources such as environment variables, command-line flags, and configuration files. The library provides a unified interface for reading configuration data, making it easier to manage and maintain your application's configuration.  
 
 ## Attention
-The library uses the [env](https://github.com/caarlos0/env), [toml](https://github.com/BurntSushi/toml), [godotenv](https://github.com/joho/godotenv) and [flaggy](https://github.com/integrii/flaggy) codebase to work with environment variables and flags. This is a temporary solution, maybe I’ll write my own implementation later. Thanks to the authors of these libraries for the work done!
+The library uses the [env](https://github.com/caarlos0/env), [pflag](https://github.com/spf13/pflag), [yaml](https://github.com/go-yaml/yaml), [toml](https://github.com/BurntSushi/toml) and [godotenv](https://github.com/joho/godotenv) codebase to work with environment variables and flags. This is a temporary solution, maybe I’ll write my own implementation later. Thanks to the authors of these libraries for the work done!
 
 ### Installation
 To install the library, use the go get command:
@@ -30,10 +30,10 @@ import (
 )
 
 type Config struct {
-	Mode string `json:"mode" yaml:"mode" s-flag:"m" flag:"mode" env:"MODE" description:"mode of the application (dev|prod)"`
+	Mode string `default:"prod" json:"mode" yaml:"mode" s-flag:"m" flag:"mode" env:"MODE" description:"mode of the application (dev|prod)"`
 	HTTP struct {
-		Host         string `json:"host" yaml:"host" s-flag:"h" flag:"http-host" env:"HTTP_HOST"`
-		Port         int    `json:"port" yaml:"port" s-flag:"p" flag:"http-port" env:"HTTP_PORT"`
+		Host         string `default:"localhost" json:"host" yaml:"host" s-flag:"h" flag:"http-host" env:"HTTP_HOST"`
+		Port         int    `default:"3000" json:"port" yaml:"port" s-flag:"p" flag:"http-port" env:"HTTP_PORT"`
 		ReadTimeout  int    `json:"read_timeout" yaml:"read-timeout" flag:"http-read-timeout" env:"HTTP_READ_TIMEOUT"`
 		WriteTimeout int    `json:"write_timeout" yaml:"write-timeout" flag:"http-write-timeout" env:"HTTP_WRITE_TIMEOUT"`
 	} `json:"http" yaml:"http"`
@@ -80,10 +80,11 @@ func main() {
 // Nested: n1
 ```
 
-There are three structural tags available for working with flags:
-- `flag`: the name of the flag
-- `s-flag`: short name of the flask
-- `description`: Description of the flag that is displayed when running the `--help` command.
+Struct tags are available for working with flags:
+- `default` default value;
+- `flag` the name of the flag;
+- `s-flag` short name of the flask (1 symbol);
+- `description` description of the flag that is displayed when running the `--help` command.
 
 ## Environment variables
 
@@ -113,14 +114,11 @@ func main() {
 // Nested: n1
 ```
 
+Struct tags are available for working with environment variables:
+- `default` default value;
+- `env` the name of the environment variable.
+
 ## Files
-
-
-To read the configuration from files, the following structural tags are available:
-- `env` for files of the format `.env`
-- `yaml` for files of the format `.yaml` or `.yml`
-- `toml` for files of the format `.toml`
-- `json` for files of the format `.json`
 
 Run a project with environment variables: `go run ./cmd/main.go`
 
@@ -153,6 +151,13 @@ flat: f1
 foo:
   nested: n1
 ```
+
+Struct tags are available for working with environment variables:
+- `default` default value;
+- `env` for files of the format `.env`
+- `yaml` for files of the format `.yaml` or `.yml`
+- `toml` for files of the format `.toml`
+- `json` for files of the format `.json`
 
 <br>
 

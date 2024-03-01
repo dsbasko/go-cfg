@@ -1,0 +1,6 @@
+{
+  "field": "jsonFieldValue",
+  "nested": {
+    "field": "jsonNestedFieldValue"
+  }
+}
