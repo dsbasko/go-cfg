@@ -1,4 +1,13 @@
 # Go Configuration Library
+
+[![GoDoc](https://img.shields.io/badge/godoc-reference-blue.svg)](https://godoc.org/github.com/dsbasko/go-cfg)
+
+[![GitHub Workflow](https://github.com/dsbasko/go-cfg/actions/workflows/go.yaml/badge.svg?branch=main)](https://github.com/dsbasko/go-cfg/actions/workflows/go.yaml)
+[![Test Coverage](https://codecov.io/gh/dsbasko/go-cfg/graph/badge.svg?token=142JTUL2X5)](https://codecov.io/gh/dsbasko/go-cfg)
+[![Go Report Card](https://goreportcard.com/badge/github.com/dsbasko/go-cfg)](https://goreportcard.com/report/github.com/dsbasko/go-cfg)
+![GitHub Version](https://img.shields.io/github/go-mod/go-version/dsbasko/go-cfg.svg)
+![GitHub Tag](https://img.shields.io/github/tag/dsbasko/go-cfg.svg)
+
 This project is a Go library for reading configuration data from various sources such as environment variables, command-line flags, and configuration files. The library provides a unified interface for reading configuration data, making it easier to manage and maintain your application's configuration.  
 
 ## Attention
