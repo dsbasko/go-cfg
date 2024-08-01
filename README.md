@@ -1,5 +1,6 @@
 # Go Configuration Library
 
+[![Mentioned in Awesome Go](https://awesome.re/mentioned-badge.svg)](https://github.com/avelino/awesome-go) 
 [![GoDoc](https://img.shields.io/badge/godoc-reference-blue.svg)](https://godoc.org/github.com/dsbasko/go-cfg)
 
 [![GitHub Workflow](https://github.com/dsbasko/go-cfg/actions/workflows/go.yaml/badge.svg?branch=main)](https://github.com/dsbasko/go-cfg/actions/workflows/go.yaml)
